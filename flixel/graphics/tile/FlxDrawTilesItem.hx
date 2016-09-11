@@ -95,10 +95,12 @@ class FlxDrawTilesItem extends FlxDrawBaseItem<FlxDrawTilesItem>
 
 		flags |= blending;
 
+		#if !(nme && flash)
 		camera.canvas.graphics.drawTiles(graphics.tilesheet, drawData,
 			(camera.antialiasing || antialiasing), flags,
 			#if (!openfl_legacy && openfl >= "3.3.9") shader, #end
 			position);
+		#end
 
 		FlxTilesheet._DRAWCALLS++;
 	}

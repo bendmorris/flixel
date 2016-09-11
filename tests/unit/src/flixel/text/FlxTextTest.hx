@@ -54,7 +54,7 @@ class FlxTextTest extends FlxTest
 		{
 			for (y in 0...graphic.height)
 			{
-				var color = graphic.getPixel32(x, y);
+				var color:FlxColor = graphic.getPixel32(x, y);
 				Assert.isFalse(color != FlxColor.WHITE && color != FlxColor.TRANSPARENT);
 			}
 		}
