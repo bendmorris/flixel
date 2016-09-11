@@ -10,6 +10,13 @@ abstract Target(String) from String to String
 }
 
 @:enum
+abstract Command(String) from String to String
+{
+	var OPENFL = "openfl";
+	var NME = "nme";
+}
+
+@:enum
 abstract ExitCode(Int) from Int to Int
 {
 	var SUCCESS = 0;
@@ -26,18 +33,24 @@ class RunTravis
 		var target:Target = Sys.args()[0];
 		if (target == null)
 			target = Target.FLASH;
+		var command:Command = Sys.args()[1];
+		if (command == null)
+			command = Command.OPENFL;
+
+		trace(target);
+		trace(command);
 		
 		dryRun = Sys.args().indexOf("-dry-run") != -1;
 	
 		Sys.exit(getResult([
 			generateMunit(),
 			setupHxcpp(target),
-			runUnitTests(target),
-			buildCoverageTests(target),
-			buildSwfVersionTests(target),
-			buildDemos(target),
-			buildNextDemos(target),
-			buildMechanicsDemos(target)
+			runUnitTests(target, command),
+			buildCoverageTests(target, command),
+			buildSwfVersionTests(target, command),
+			buildDemos(target, command),
+			buildNextDemos(target, command),
+			buildMechanicsDemos(target, command)
 		]));
 	}
 	
@@ -71,50 +84,50 @@ class RunTravis
 		return runInDir(dir, function() return runCommand(cmd, args));
 	}
 	
-	static function runUnitTests(target:Target):ExitCode
+	static function runUnitTests(target:Target, command:Command):ExitCode
 	{
 		if (target == Target.FLASH || target == Target.HTML5)
 		{	
 			// can't run / display results without a browser,
 			// this at least checks if the tests compile
 			Sys.println("Building unit tests...\n");
-			return build("unit", target);
+			return build("unit", target, command);
 		}
 		else
 		{
 			Sys.println("Running unit tests...\n");
-			return runOpenFL("test", "unit", target);
+			return runOpenFL("test", "unit", target, command);
 		}
 	}
 	
-	static function buildCoverageTests(target:Target):ExitCode
+	static function buildCoverageTests(target:Target, command:Command):ExitCode
 	{
 		Sys.println("\nBuilding coverage tests...\n");
 		return getResult([
-			build("coverage", target, "coverage1"),
-			build("coverage", target, "coverage2")
+			build("coverage", target, command, "coverage1"),
+			build("coverage", target, command, "coverage2")
 		]);
 	}
 	
-	static function buildDemos(target:Target):ExitCode
+	static function buildDemos(target:Target, command:Command):ExitCode
 	{
 		Sys.println("\nBuilding demos...\n");
 		var demos = [];
 		if (target == Target.CPP)
 			demos = importantDemos;
-		return buildProjects(target, demos);
+		return buildProjects(target, command, demos);
 	}
 	
-	static function buildNextDemos(target:Target):ExitCode
+	static function buildNextDemos(target:Target, command:Command):ExitCode
 	{
 		if (target != Target.NEKO)
 			return ExitCode.SUCCESS;
 		
 		Sys.println("\nBuilding demos for OpenFL Next...\n");
-		return buildProjects(target, importantDemos.concat(["-Dnext"]));
+		return buildProjects(target, command, importantDemos.concat(["-Dnext"]));
 	}
 	
-	static function buildMechanicsDemos(target:Target):ExitCode
+	static function buildMechanicsDemos(target:Target, command:Command):ExitCode
 	{
 		if (target == Target.CPP)
 			return ExitCode.SUCCESS;
@@ -122,35 +135,43 @@ class RunTravis
 		Sys.println("\nBuilding mechanics demos...\n");
 		runCommand("git", ["clone", "https://github.com/HaxeFlixel/haxeflixel-mechanics"]);
 		
-		return buildProjects(target, ["-dir", "haxeflixel-mechanics"]);
+		return buildProjects(target, command, ["-dir", "haxeflixel-mechanics"]);
 	}
 	
-	static function buildProjects(target:Target, args:Array<String>):ExitCode
+	static function buildProjects(target:Target, command:Command, args:Array<String>):ExitCode
 	{
-		return haxelibRun(["flixel-tools", "bp", target].concat(args));
+		if (command == Command.OPENFL)
+		{
+			return haxelibRun(["flixel-tools", "bp", target].concat(args));
+		}
+		else
+		{
+			Sys.println('\nWARNING: building demos is not currently supported with $command\n');
+			return ExitCode.SUCCESS;
+		}
 	}
 	
-	static function buildSwfVersionTests(target:Target):ExitCode
+	static function buildSwfVersionTests(target:Target, command:Command):ExitCode
 	{
 		if (target == Target.FLASH)
 		{
 			Sys.println("\nBuilding swf version tests...\n");
 			return getResult([
-				build("swfVersion/11", target),
-				build("swfVersion/11_2", target)
+				build("swfVersion/11", target, command),
+				build("swfVersion/11_2", target, command)
 			]);
 		}
 		else return ExitCode.SUCCESS;
 	}
 	
-	static function build(path:String, target:Target, ?define:String):ExitCode
+	static function build(path:String, target:Target, command:Command, ?define:String):ExitCode
 	{
-		return runOpenFL("build", path, target, define);
+		return runOpenFL("build", path, target, command, define);
 	}
 	
-	static function runOpenFL(operation:String, path:String, target:Target, ?define:String):ExitCode
+	static function runOpenFL(operation:String, path:String, target:Target, command:Command, ?define:String):ExitCode
 	{
-		var args = ["openfl", operation, path, target];
+		var args:Array<String> = [command, operation, path, target];
 		if (define != null)
 			args.push('-D$define');
 		return haxelibRun(args);

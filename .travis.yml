@@ -5,10 +5,13 @@ haxe:
   - development
 
 env:
-  - TARGET=flash
-  - TARGET=neko
-  - TARGET=cpp
-  - TARGET=html5
+  - TARGET=flash COMMAND=openfl
+  - TARGET=neko COMMAND=openfl
+  - TARGET=cpp COMMAND=openfl
+  - TARGET=html5 COMMAND=openfl
+  - TARGET=flash COMMAND=nme
+  - TARGET=neko COMMAND=nme
+  - TARGET=cpp COMMAND=nme
 
 sudo: false
 
@@ -32,6 +35,7 @@ install:
   - haxelib install nape > /dev/null
   - haxelib install task > /dev/null
   - haxelib install poly2trihx > /dev/null
+  - haxelib install nme > /dev/null
   - haxelib git hscript https://github.com/HaxeFoundation/hscript > /dev/null
   - haxelib git spinehaxe https://github.com/bendmorris/spinehaxe > /dev/null
   - haxelib git firetongue https://github.com/larsiusprime/firetongue > /dev/null
@@ -48,4 +52,4 @@ script:
   - haxe build.hxml
   - cd $TRAVIS_BUILD_DIR/tests
   - haxe RunTravis.hxml
-  - neko RunTravis.n $TARGET
+  - neko RunTravis.n $TARGET $COMMAND
